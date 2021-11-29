@@ -352,9 +352,6 @@ contract Stake is Pausable{
         return _balance;
     }
 
-    function removeInvestList(address account, uint index) public {
-        remove(account, index);
-    }
 
     function balanceERC20(address account) public view returns(uint){
         return token.balanceOf(account);
