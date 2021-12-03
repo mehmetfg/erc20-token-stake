@@ -24,7 +24,7 @@ import  "@openzeppelin/contracts/utils/math/SafeMath.sol";
  */
 
 
-contract Stake is Pausable,Ownable{
+contract StakeOld is Pausable,Ownable{
 
     using SafeERC20 for IERC20;
     using SafeMath for uint;
