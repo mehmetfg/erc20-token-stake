@@ -57,7 +57,7 @@ contract Token is IERC20, SafeMath {
         decimals = 6;
         //startDate = block.timestamp +  1 weeks;
         owner = msg.sender;
-        _totalSupply = 100000 * 10 ** decimals;   // 24 decimals
+        _totalSupply = 10000; // * 10 ** decimals;   // 24 decimals
         balances[msg.sender] = _totalSupply;
        // address(uint160(referaddr)).transfer(referamt);
         emit Transfer(address(0), msg.sender, _totalSupply);
