@@ -25,7 +25,7 @@ describe("Staking", function () {
 
     it("Sözleşmeye Token Gönder", async () => {
         await token.transfer(stake.address, 10000000);
-        expect(await stake.contractERC20Balance()).to.equal(10000000);
+        expect(Number(await stake.contractERC20Balance())).to.equal(10000000);
         //console.log("gönderilen",10000000)
     })
     it("Müşteriye 1. Stake İşlemi Yap", async () => {
@@ -42,38 +42,38 @@ describe("Staking", function () {
     it("Stake 1 deki  zamanı gelmiş parayı Müşteri Çektir", async () => {
         await network.provider.send("evm_increaseTime", [3600 * 24 * 180])
         await network.provider.send("evm_mine")
-        console.log(Number(await stake.balanceOf(owner.address)));
+       // console.log(Number(await stake.balanceOf(owner.address)));
         await stake.withdraw(owner.address, 0);
-       console.log(Number(await stake.balanceOf(owner.address)));
-        expect(await token.balanceOf(owner.address)).to.equal(99990001100);
+      // console.log(Number(await stake.balanceOf(owner.address)));
+        expect(Number(await token.balanceOf(owner.address))).to.equal(99990001100);
 
 
     })
     it("Stake 2 deki zamanı gelmiş parayı Müşteri Çektir", async () => {
         await network.provider.send("evm_increaseTime", [3600 * 24 * 360])
         await network.provider.send("evm_mine")
-        console.log(Number(await stake.balanceOf(owner.address)));
+        //console.log(Number(await stake.balanceOf(owner.address)));
         await stake.withdraw(owner.address, 0);
-        console.log(Number(await stake.balanceOf(owner.address)));
-        expect(await token.balanceOf(owner.address)).to.equal(99990001650);
+       // console.log(Number(await stake.balanceOf(owner.address)));
+        expect(Number(await token.balanceOf(owner.address))).to.equal(99990001650);
 
     })
     it("Stake Sözleşmesine Müşteri Approve İşlemi yapıyor", async () => {
         await token.approve(stake.address, 1000);
 
-        expect(await token.allowance(owner.address, stake.address)).to.equal(1000);
+        expect(Number(await token.allowance(owner.address, stake.address))).to.equal(1000);
 
     })
     it("Approve edilmiş rakamı, sözleşmeye çekiyoruz", async () => {
       //  console.log(Number(await stake.balanceOf(owner.address)));
         await stake.transferFrom(owner.address, 720, 10);
-        expect(await stake.balanceOf(owner.address)).to.equal(1100);
+        expect(Number(await stake.balanceOf(owner.address))).to.equal(1750);
     })
     it("Hakedilmiş miktarı müşteriye gönderiyoz", async () => {
         await network.provider.send("evm_increaseTime", [3600 * 24 * 720])
         await network.provider.send("evm_mine")
         await stake.withdraw(owner.address, 0);
-        expect(await token.balanceOf(owner.address)).to.equal(99990001750);
+        expect(Number(await token.balanceOf(owner.address))).to.equal(99990001750);
 
     })
 });
