@@ -136,7 +136,7 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
 
     /* =========== views ==========*/
 
-    function getInvestorInfo(address account) public view
+    function getInvestorInfo(address account) external view
     returns(
         uint[] memory balances,
         uint[] memory times
@@ -152,12 +152,12 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     }
 
     // stakingToken amount in the contract
-    function contractBalanceOf() public view returns(uint){
+    function contractBalanceOf() external view returns(uint){
         return stakingToken.balanceOf(address(this));
     }
 
     // the virtual balance is shown along with the stake total amount
-    function balanceOf(address account) public view returns(uint){
+    function balanceOf(address account) external view returns(uint){
         return investments[account].totalUserBalance;
     }
 
