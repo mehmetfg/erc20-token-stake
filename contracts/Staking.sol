@@ -66,11 +66,11 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     }
 
     /* ========== internals ======== */
-    function transferToContract(uint amount) internal {
+   /* function transferToContract(uint amount) internal {
         uint _allowance = stakingToken.allowance(tokenOwner, address(this));
         require(amount <= _allowance, "insufficient allowance");
         stakingToken.safeTransferFrom(tokenOwner, address(this), amount);
-    }
+    }*/
 
     // to calculate the rewards by  rate
     function calculateTotalAmount(uint amount, uint rate)  public view   returns(uint){
@@ -88,7 +88,7 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
         uint _time      = block.timestamp.add(day.mul(1 days));
         uint _amount    = calculateTotalAmount(amount, rate);
 
-        transferToContract(_amount);
+        stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
 
         //virtual balance is created with the stake reward
         investor.balance    = _amount;
@@ -108,7 +108,7 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
 
         investor = investments[_msgSender()].investors[index];
 
-        require(investor.balance > 0, "balance must be greater than 0");
+       // require(investor.balance > 0, "balance must be greater than 0");
         require(investor.time < block.timestamp, "time has not expired");
 
 
