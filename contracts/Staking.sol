@@ -29,19 +29,19 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     using SafeERC20 for IERC20;
     using SafeMath for uint;
 
-    struct Investor {
+    struct UserData {
         uint balance;
         uint time;
     }
 
-    struct InvestorStorage {
+    struct TimedWithdraw {
         uint  totalUserBalance;
-        Investor[] investors;
+        UserData[] userDataStore;
     }
 
-    Investor investor;
+    UserData userData;
 
-    mapping(address => InvestorStorage)  investments;
+    mapping(address => TimedWithdraw)  stakeApplyInfo;
 
     IERC20 public stakingToken;
 
@@ -54,8 +54,8 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
 
     /* ========== CONSTRUCTOR ========== */
     constructor(IERC20 _token, address _tokenOwner) {
-        stakingToken = _token; // token contract address
-        tokenOwner = _tokenOwner; // owner account to withdraw token
+        stakingToken = _token; // contract address of the token to be staked
+        tokenOwner = _tokenOwner; // owner account to withdraw the token to be staked
     }
 
     /* ========== modifier ======== */
@@ -80,10 +80,10 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     // the authorized user tokenowner draws the balance from the account to the contract and makes the stake to the relevant account.
-    function stake(address  account, uint amount, uint day, uint rate) public  whenNotPaused onlyOwner validDestination(account){
+    function stake(address  account, uint amount, uint day, uint rate) public   onlyOwner whenNotPaused validDestination(account){
         require(amount > 0, "can not stake 0");
         // require(day > 0, "can not day 0");
-        require(investments[account].investors.length <= 5 ,"array length can be up to 5");
+        require(stakeApplyInfo[account].userDataStore.length <= 5 ,"array length can be up to 5");
 
         uint _time      = block.timestamp.add(day.mul(1 days));
         uint _amount    = calculateTotalAmount(amount, rate);
@@ -91,10 +91,10 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
         stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
 
         //virtual balance is created with the stake reward
-        investor.balance    = _amount;
-        investor.time       = _time;
-        investments[account].investors.push(investor);
-        investments[account].totalUserBalance += _amount;
+        userData.balance    = _amount;
+        userData.time       = _time;
+        stakeApplyInfo[account].userDataStore.push(userData);
+        stakeApplyInfo[account].totalUserBalance += _amount;
 
         emit Staked(account, amount, _time, rate);
     }
@@ -103,34 +103,33 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     // withdraw staked amount if possible
     function withdraw(uint index) public whenNotPaused nonReentrant{
 
-        require(investments[_msgSender()].investors.length > 0, "array is empty");
+        require(stakeApplyInfo[_msgSender()].userDataStore.length > 0, "array is empty");
 
 
-        investor = investments[_msgSender()].investors[index];
+        userData = stakeApplyInfo[_msgSender()].userDataStore[index];
 
-       // require(investor.balance > 0, "balance must be greater than 0");
-        require(investor.time < block.timestamp, "time has not expired");
+       // require(userData.balance > 0, "balance must be greater than 0");
+        require(userData.time < block.timestamp, "time has not expired");
 
 
         remove(_msgSender(), index);
 
         //virtual balance is withdraw to the account
-        stakingToken.safeTransfer(_msgSender(), investor.balance);
+        stakingToken.safeTransfer(_msgSender(), userData.balance);
 
-        emit Withdraw(_msgSender(), investor.balance, index, block.timestamp);
+        emit Withdraw(_msgSender(), userData.balance, index, block.timestamp);
     }
 
     //as a result of withdrawing the balance, the virtual balance is removed
     function remove(address account, uint index) internal {
-        uint  _length =investments[account].investors.length;
-
+        uint  _length =stakeApplyInfo[account].userDataStore.length;
         if(_length > 1){
-            investments[account].investors[index] = investments[account].investors[_length-1];
-            investments[account].totalUserBalance -= investments[account].investors[index].balance;
-            investments[account].investors.pop();
+            stakeApplyInfo[account].totalUserBalance -= stakeApplyInfo[account].userDataStore[index].balance ;
+            stakeApplyInfo[account].userDataStore[index] = stakeApplyInfo[account].userDataStore[_length-1];
+            stakeApplyInfo[account].userDataStore.pop();
         } else {
-            investments[account].totalUserBalance -= investments[account].investors[index].balance;
-            investments[account].investors.pop();
+            stakeApplyInfo[account].totalUserBalance = 0;
+            stakeApplyInfo[account].userDataStore.pop();
         }
     }
 
@@ -141,12 +140,12 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
         uint[] memory balances,
         uint[] memory times
     ){
-        uint _lenght = investments[account].investors.length;
+        uint _lenght = stakeApplyInfo[account].userDataStore.length;
         uint[] memory _balances = new uint[](_lenght);
         uint[] memory _times= new uint[](_lenght);
         for(uint i = 0; i < _lenght; i++){
-            _balances[i] = investments[account].investors[i].balance;
-            _times[i]  =   investments[account].investors[i].time;
+            _balances[i] = stakeApplyInfo[account].userDataStore[i].balance;
+            _times[i]  =   stakeApplyInfo[account].userDataStore[i].time;
         }
         return (_balances, _times);
     }
@@ -158,7 +157,7 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
 
     // the virtual balance is shown along with the stake total amount
     function balanceOf(address account) external view returns(uint){
-        return investments[account].totalUserBalance;
+        return stakeApplyInfo[account].totalUserBalance;
     }
 
 }
