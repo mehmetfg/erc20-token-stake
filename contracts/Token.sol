@@ -7,7 +7,7 @@
 */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
+import "hardhat/console.sol";
 
 abstract contract IERC20 {
 
@@ -84,6 +84,7 @@ contract Token is IERC20, SafeMath {
      * @dev transfer : Transfer token to another etherum address
      */
     function transfer(address to, uint tokens) virtual override public returns (bool success) {
+
         require(to != address(0), "Null address");
         require(tokens > 0, "Invalid Value");
         balances[msg.sender] = safeSub(balances[msg.sender], tokens);

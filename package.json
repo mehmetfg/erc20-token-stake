@@ -1,6 +1,7 @@
 {
   "devDependencies": {
-    "hardhat": "^2.7.0"
+    "hardhat": "^2.7.0",
+    "hardhat-gas-reporter": "^1.0.6"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",

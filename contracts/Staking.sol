@@ -6,7 +6,7 @@ import  "@openzeppelin/contracts/access/Ownable.sol";
 import  "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import  "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import  "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
+import "hardhat/console.sol";
 /*
 
 ///       ____ __   __ ____  _____      ____  _____   _     _  __ _____
@@ -39,7 +39,7 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
         UserData[] userDataStore;
     }
 
-    UserData userData;
+   //UserData _userData;
 
     mapping(address => TimedWithdraw)  stakeApplyInfo;
 
@@ -65,15 +65,8 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
         _;
     }
 
-    /* ========== internals ======== */
-   /* function transferToContract(uint amount) internal {
-        uint _allowance = stakingToken.allowance(tokenOwner, address(this));
-        require(amount <= _allowance, "insufficient allowance");
-        stakingToken.safeTransferFrom(tokenOwner, address(this), amount);
-    }*/
-
     // to calculate the rewards by  rate
-    function calculateTotalAmount(uint amount, uint rate)  public view   returns(uint){
+    function calculateTotalAmount(uint amount, uint rate)  internal view   returns(uint){
         return amount.add(amount.mul(rate).div(rateScale));
     }
 
@@ -82,19 +75,22 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     // the authorized user tokenowner draws the balance from the account to the contract and makes the stake to the relevant account.
     function stake(address  account, uint amount, uint day, uint rate) public   onlyOwner whenNotPaused validDestination(account){
         require(amount > 0, "can not stake 0");
-        // require(day > 0, "can not day 0");
-        require(stakeApplyInfo[account].userDataStore.length <= 5 ,"array length can be up to 5");
+        require(day > 0, "can not day 0");
+        require(rate <= 30000, "withdraw rate is too high");
+        require(stakeApplyInfo[account].userDataStore.length < 5 ,"array length can be up to 5");
 
         uint _time      = block.timestamp.add(day.mul(1 days));
         uint _amount    = calculateTotalAmount(amount, rate);
 
-        stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
 
+       stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
+        UserData memory _userData;
         //virtual balance is created with the stake reward
-        userData.balance    = _amount;
-        userData.time       = _time;
-        stakeApplyInfo[account].userDataStore.push(userData);
+        _userData.balance    = _amount;
+        _userData.time       = _time;
+        stakeApplyInfo[account].userDataStore.push(_userData);
         stakeApplyInfo[account].totalUserBalance += _amount;
+
 
         emit Staked(account, amount, _time, rate);
     }
@@ -103,21 +99,23 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
     // withdraw staked amount if possible
     function withdraw(uint index) public whenNotPaused nonReentrant{
 
+        require(index < stakeApplyInfo[_msgSender()].userDataStore.length, "index out of bound");
         require(stakeApplyInfo[_msgSender()].userDataStore.length > 0, "array is empty");
 
+        UserData memory _userData;
 
-        userData = stakeApplyInfo[_msgSender()].userDataStore[index];
+        _userData = stakeApplyInfo[_msgSender()].userDataStore[index];
 
-       // require(userData.balance > 0, "balance must be greater than 0");
-        require(userData.time < block.timestamp, "time has not expired");
+
+        require(_userData.time < block.timestamp, "time has not expired");
 
 
         remove(_msgSender(), index);
 
         //virtual balance is withdraw to the account
-        stakingToken.safeTransfer(_msgSender(), userData.balance);
+        stakingToken.safeTransfer(_msgSender(), _userData.balance);
 
-        emit Withdraw(_msgSender(), userData.balance, index, block.timestamp);
+        emit Withdraw(_msgSender(), _userData.balance, index, block.timestamp);
     }
 
     //as a result of withdrawing the balance, the virtual balance is removed
@@ -152,11 +150,13 @@ contract Staking is Pausable,Ownable, ReentrancyGuard{
 
     // stakingToken amount in the contract
     function contractBalanceOf() external view returns(uint){
+
         return stakingToken.balanceOf(address(this));
     }
 
     // the virtual balance is shown along with the stake total amount
     function balanceOf(address account) external view returns(uint){
+
         return stakeApplyInfo[account].totalUserBalance;
     }
 
