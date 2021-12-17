@@ -1,30 +1,51 @@
 /**
  *Submitted for verification at Etherscan.io on 2021-05-15
-*/
+ */
 
 /**
  *Submitted for verification at Etherscan.io on 2020-09-04
-*/
+ */
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 
 abstract contract IERC20 {
+    function totalSupply() public view virtual returns (uint256);
 
-    function totalSupply() virtual public view returns (uint);
-    function balanceOf(address tokenOwner) virtual public view returns (uint);
-    function allowance(address tokenOwner, address spender) virtual public view returns (uint);
-    function transfer(address to, uint tokens) virtual public returns (bool);
-    function approve(address spender, uint tokens) virtual public returns (bool);
-    function transferFrom(address from, address to, uint tokens) virtual public returns (bool);
+    function balanceOf(address tokenOwner)
+        public
+        view
+        virtual
+        returns (uint256);
 
-    event Transfer(address indexed from, address indexed to, uint tokens);
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    function allowance(address tokenOwner, address spender)
+        public
+        view
+        virtual
+        returns (uint256);
+
+    function transfer(address to, uint256 tokens) public virtual returns (bool);
+
+    function approve(address spender, uint256 tokens)
+        public
+        virtual
+        returns (bool);
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokens
+    ) public virtual returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 tokens);
+    event Approval(
+        address indexed tokenOwner,
+        address indexed spender,
+        uint256 tokens
+    );
 }
 
-
 contract SafeMath {
-
     function safeAdd(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a, "SafeMath: addition overflow");
@@ -38,7 +59,6 @@ contract SafeMath {
     }
 }
 
-
 contract Token is IERC20, SafeMath {
     string public name;
     string public symbol;
@@ -47,11 +67,10 @@ contract Token is IERC20, SafeMath {
     uint256 public _totalSupply;
     address public owner;
 
+    mapping(address => uint256) balances;
+    mapping(address => mapping(address => uint256)) allowed;
 
-    mapping(address => uint) balances;
-    mapping(address => mapping(address => uint)) allowed;
-
-    constructor()  {
+    constructor() {
         name = "Mehmet Fatih 0000";
         symbol = "ttt";
         decimals = 6;
@@ -59,21 +78,32 @@ contract Token is IERC20, SafeMath {
         owner = msg.sender;
         _totalSupply = 10000; // * 10 ** decimals;   // 24 decimals
         balances[msg.sender] = _totalSupply;
-       // address(uint160(referaddr)).transfer(referamt);
+        // address(uint160(referaddr)).transfer(referamt);
         emit Transfer(address(0), msg.sender, _totalSupply);
     }
 
     /**
      * @dev allowance : Check approved balance
      */
-    function allowance(address tokenOwner, address spender) virtual override public view returns (uint remaining) {
+    function allowance(address tokenOwner, address spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256 remaining)
+    {
         return allowed[tokenOwner][spender];
     }
 
     /**
      * @dev approve : Approve token for spender
      */
-    function approve(address spender, uint tokens) virtual override public returns (bool success) {
+    function approve(address spender, uint256 tokens)
+        public
+        virtual
+        override
+        returns (bool success)
+    {
         require(tokens >= 0, "Invalid value");
         allowed[msg.sender][spender] = tokens;
         emit Approval(msg.sender, spender, tokens);
@@ -83,8 +113,12 @@ contract Token is IERC20, SafeMath {
     /**
      * @dev transfer : Transfer token to another etherum address
      */
-    function transfer(address to, uint tokens) virtual override public returns (bool success) {
-
+    function transfer(address to, uint256 tokens)
+        public
+        virtual
+        override
+        returns (bool success)
+    {
         require(to != address(0), "Null address");
         require(tokens > 0, "Invalid Value");
         balances[msg.sender] = safeSub(balances[msg.sender], tokens);
@@ -96,7 +130,11 @@ contract Token is IERC20, SafeMath {
     /**
      * @dev transferFrom : Transfer token after approval
      */
-    function transferFrom(address from, address to, uint tokens) virtual override public returns (bool success) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokens
+    ) public virtual override returns (bool success) {
         require(to != address(0), "Null address");
         require(from != address(0), "Null address");
         require(tokens > 0, "Invalid value");
@@ -112,14 +150,20 @@ contract Token is IERC20, SafeMath {
     /**
      * @dev totalSupply : Display total supply of token
      */
-    function totalSupply() virtual override public view returns (uint) {
+    function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev balanceOf : Displya token balance of given address
      */
-    function balanceOf(address tokenOwner) virtual override public view returns (uint balance) {
+    function balanceOf(address tokenOwner)
+        public
+        view
+        virtual
+        override
+        returns (uint256 balance)
+    {
         return balances[tokenOwner];
     }
 
@@ -128,7 +172,10 @@ contract Token is IERC20, SafeMath {
      */
     function mint(uint256 _amount) public returns (bool) {
         require(_amount >= 0, "Invalid amount");
-        require(_amount +_totalSupply <= 9000000000 * 10 ** uint256(decimals), "Invalid amount");
+        require(
+            _amount + _totalSupply <= 9000000000 * 10**uint256(decimals),
+            "Invalid amount"
+        );
         require(owner == msg.sender, "UnAuthorized");
         _totalSupply = safeAdd(_totalSupply, _amount);
         balances[owner] = safeAdd(balances[owner], _amount);
@@ -137,8 +184,8 @@ contract Token is IERC20, SafeMath {
     }
 
     /**
-    * @dev mint : To increase total supply of tokens
-    */
+     * @dev mint : To increase total supply of tokens
+     */
     function burn(uint256 _amount) public returns (bool) {
         require(_amount >= 0, "Invalid amount");
         require(owner == msg.sender, "UnAuthorized");
@@ -148,5 +195,4 @@ contract Token is IERC20, SafeMath {
         emit Transfer(owner, address(0), _amount);
         return true;
     }
-
 }

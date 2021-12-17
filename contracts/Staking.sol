@@ -1,12 +1,14 @@
 //SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
-import  "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import  "@openzeppelin/contracts/security/Pausable.sol";
-import  "@openzeppelin/contracts/access/Ownable.sol";
-import  "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import  "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import  "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "hardhat/console.sol";
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 /*
 
 ///       ____ __   __ ____  _____      ____  _____   _     _  __ _____
@@ -23,31 +25,39 @@ import "hardhat/console.sol";
  *
  */
 
-
 contract Staking is Pausable, Ownable, ReentrancyGuard {
-
     using SafeERC20 for IERC20;
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     struct UserData {
-        uint balance;
-        uint time;
+        uint256 balance;
+        uint256 time;
     }
 
     struct TimedWithdraw {
-        uint  totalUserBalance;
+        uint256 totalUserBalance;
         UserData[] userDataStore;
     }
 
-    mapping(address => TimedWithdraw)  stakeApplyInfo;
+    mapping(address => TimedWithdraw) stakeApplyInfo;
 
     IERC20 public stakingToken;
 
-    address  public  tokenOwner;
+    address public tokenOwner;
     uint256 public rateScale = 10000;
 
-    event Staked(address account, uint amount, uint time, uint percent);
-    event Withdraw(address account, uint amount, uint time, uint percent);
+    event Staked(
+        address account,
+        uint256 amount,
+        uint256 time,
+        uint256 percent
+    );
+    event Withdraw(
+        address account,
+        uint256 amount,
+        uint256 time,
+        uint256 percent
+    );
 
     /* ========== CONSTRUCTOR ========== */
     constructor(IERC20 _token, address _tokenOwner) {
@@ -56,29 +66,42 @@ contract Staking is Pausable, Ownable, ReentrancyGuard {
     }
 
     /* ========== modifier ======== */
-    modifier validDestination(address _to){
-        require(_to != address(0x0));
-        require(_to != address(stakingToken));
+    modifier validDestination(address _to) {
+        require(_to != address(0x0), "blackhole address");
+        require(_to != address(stakingToken), "Token contract address");
         _;
     }
 
     // to calculate the rewards by  rate
-    function calculateTotalAmount(uint amount, uint rate)  internal view   returns(uint) {
+    function calculateTotalAmount(uint256 amount, uint256 rate)
+        internal
+        view
+        returns (uint256)
+    {
         return amount.add(amount.mul(rate).div(rateScale));
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
-    // the authorized user tokenowner draws the balance from the account to the contract and makes the stake to the relevant account.
-    function stake(address  account, uint amount, uint day, uint rate) public   onlyOwner whenNotPaused validDestination(account) {
+    // the authorized user tokenowner draws the balance from
+    //the account to the contract and makes the stake to the relevant account.
+    function stake(
+        address account,
+        uint256 amount,
+        uint256 day,
+        uint256 rate
+    ) public onlyOwner whenNotPaused validDestination(account) {
         require(amount > 0, "can not stake 0");
         require(day > 0, "can not day 0");
         require(rate <= 30000, "withdraw rate is too high");
-        require(stakeApplyInfo[account].userDataStore.length < 5 ,"array length can be up to 5");
+        require(
+            stakeApplyInfo[account].userDataStore.length < 5,
+            "array length can be up to 5"
+        );
 
-        uint _time = block.timestamp.add(day.mul(1 days));
-        uint _amount = calculateTotalAmount(amount, rate);
+        uint256 _time = block.timestamp.add(day.mul(1 days));
+        uint256 _amount = calculateTotalAmount(amount, rate);
 
-       stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
+        stakingToken.safeTransferFrom(tokenOwner, address(this), _amount);
 
         //virtual balance is created with the stake reward
         UserData memory _userData;
@@ -91,10 +114,15 @@ contract Staking is Pausable, Ownable, ReentrancyGuard {
     }
 
     // withdraw staked amount if possible
-    function withdraw(uint index) public whenNotPaused nonReentrant {
-
-        require(index < stakeApplyInfo[_msgSender()].userDataStore.length, "index out of bound");
-        require(stakeApplyInfo[_msgSender()].userDataStore.length > 0, "array is empty");
+    function withdraw(uint256 index) public whenNotPaused nonReentrant {
+        require(
+            index < stakeApplyInfo[_msgSender()].userDataStore.length,
+            "index out of bound"
+        );
+        require(
+            stakeApplyInfo[_msgSender()].userDataStore.length > 0,
+            "array is empty"
+        );
 
         UserData memory _userData;
 
@@ -111,11 +139,15 @@ contract Staking is Pausable, Ownable, ReentrancyGuard {
     }
 
     //as a result of withdrawing the balance, the virtual balance is removed
-    function remove(address account, uint index) internal {
-        uint  _length =stakeApplyInfo[account].userDataStore.length;
-        if(_length > 1) {
-            stakeApplyInfo[account].totalUserBalance -= stakeApplyInfo[account].userDataStore[index].balance;
-            stakeApplyInfo[account].userDataStore[index] = stakeApplyInfo[account].userDataStore[_length - 1];
+    function remove(address account, uint256 index) internal {
+        uint256 _length = stakeApplyInfo[account].userDataStore.length;
+        if (_length > 1) {
+            stakeApplyInfo[account].totalUserBalance -= stakeApplyInfo[account]
+                .userDataStore[index]
+                .balance;
+            stakeApplyInfo[account].userDataStore[index] = stakeApplyInfo[
+                account
+            ].userDataStore[_length - 1];
             stakeApplyInfo[account].userDataStore.pop();
         } else {
             stakeApplyInfo[account].totalUserBalance = 0;
@@ -124,15 +156,15 @@ contract Staking is Pausable, Ownable, ReentrancyGuard {
     }
 
     /* =========== views ==========*/
-    function getInvestorInfo(address account) external view
-    returns(
-        uint[] memory balances,
-        uint[] memory times
-    ) {
-        uint _length= stakeApplyInfo[account].userDataStore.length;
-        uint[] memory _balances = new uint[](_length);
-        uint[] memory _times= new uint[](_length);
-        for(uint i = 0; i < _length; i++){
+    function getInvestorInfo(address account)
+        external
+        view
+        returns (uint256[] memory balances, uint256[] memory times)
+    {
+        uint256 _length = stakeApplyInfo[account].userDataStore.length;
+        uint256[] memory _balances = new uint256[](_length);
+        uint256[] memory _times = new uint256[](_length);
+        for (uint256 i = 0; i < _length; i++) {
             _balances[i] = stakeApplyInfo[account].userDataStore[i].balance;
             _times[i] = stakeApplyInfo[account].userDataStore[i].time;
         }
@@ -140,13 +172,12 @@ contract Staking is Pausable, Ownable, ReentrancyGuard {
     }
 
     // stakingToken amount in the contract
-    function contractBalanceOf() external view returns(uint) {
+    function contractBalanceOf() external view returns (uint256) {
         return stakingToken.balanceOf(address(this));
     }
 
     // the virtual balance is shown along with the stake total amount
-    function balanceOf(address account) external view returns(uint) {
+    function balanceOf(address account) external view returns (uint256) {
         return stakeApplyInfo[account].totalUserBalance;
     }
-
 }
